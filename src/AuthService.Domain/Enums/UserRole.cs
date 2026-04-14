@@ -1,15 +1,11 @@
-// nombre del espacio de trabajo
 namespace AuthService.Enums;
 
-
 // Enumeración para los roles de usuario
-//cada valor tiene un valor numérico asociado.
-
-    public enum UserRole
-    {
-        User = 0,
-        Admin = 1,
-        Moderator = 2
-    }
-
-
+// Cada valor tiene un valor numérico asociado.
+public enum UserRole
+{
+    PlatformAdmin = 0,
+    BranchAdmin = 1,
+    Employee = 2,
+    Client = 3
+}
