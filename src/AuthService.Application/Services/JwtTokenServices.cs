@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AuthService.Domain.Constants;
 
 namespace AuthService.Application.Services;
 
@@ -22,8 +23,7 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         // Get user's role (assumes single role per user)
-        var role = user.UserRoles?.FirstOrDefault()?.Role?.Name ?? "USER_ROLE";
-
+        var role = user.UserRoles?.FirstOrDefault()?.Role?.Name ?? RoleConstants.CLIENT_ROLE;
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),

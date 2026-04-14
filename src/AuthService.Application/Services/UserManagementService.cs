@@ -8,25 +8,25 @@ namespace AuthService.Application.Services;
 
 public class UserManagementService(IUserRepository users, IRoleRepository roles, ICloudinaryService cloudinary) : IUserManagementService
 {
-	public async Task<UserResponseDto> UpdateUserRoleAsync(string userId, string roleName)
+    public async Task<UserResponseDto> UpdateUserRoleAsync(string userId, string roleName)
     {
-        // Normalizar
+        // Normalize
         roleName = roleName?.Trim().ToUpperInvariant() ?? string.Empty;
 
-        // Validar entradas
+        // Validate inputs
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentException("Invalid userId", nameof(userId));
         
         if (!RoleConstants.AllowedRoles.Contains(roleName))
-            throw new InvalidOperationException($"Role not allowed. Use {RoleConstants.ADMIN_ROLE} or {RoleConstants.USER_ROLE}");
+            throw new InvalidOperationException($"Role not allowed. Use {RoleConstants.PLATFORM_ADMIN_ROLE}, {RoleConstants.BRANCH_ADMIN_ROLE}, {RoleConstants.EMPLOYEE_ROLE} or {RoleConstants.CLIENT_ROLE}");
 
-        // Cargar al usuario con roles
+        // Load user with roles
         var user = await users.GetByIdAsync(userId);
 
-        // If demoting an admin, prevent removing last admin
-        var isUserAdmin = user.UserRoles.Any(r => r.Role.Name == RoleConstants.ADMIN_ROLE);
-        if (isUserAdmin && roleName != RoleConstants.ADMIN_ROLE)
+        // If demoting an admin, prevent removing last platform admin
+        var isUserAdmin = user.UserRoles.Any(r => r.Role.Name == RoleConstants.PLATFORM_ADMIN_ROLE);
+        if (isUserAdmin && roleName != RoleConstants.PLATFORM_ADMIN_ROLE)
         {
-            var adminCount = await roles.CountUsersInRoleAsync(RoleConstants.ADMIN_ROLE);
+            var adminCount = await roles.CountUsersInRoleAsync(RoleConstants.PLATFORM_ADMIN_ROLE);
 
             if (adminCount <= 1)
             {
