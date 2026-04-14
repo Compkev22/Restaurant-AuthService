@@ -5,22 +5,22 @@ namespace AuthService.Application.DTOs;
 
 public class RegisterDto
 {
-    [Required]
-    [MaxLength(25)]
-    public string Name { get; set; } = string.Empty;
+    [Required(ErrorMessage = "El nombre es requerido")]
+    [MaxLength(100)]
+    public string UserName { get; set; } = string.Empty; // Antes: Name
 
-    [Required]
-    [MaxLength(25)]
-    public string Surname { get; set; } = string.Empty;
+    [Required(ErrorMessage = "El apellido es requerido")]
+    [MaxLength(100)]
+    public string UserSurname { get; set; } = string.Empty; // Antes: Surname
 
-    [Required]
+    [Required(ErrorMessage = "El nombre de usuario es requerido")]
     public string Username { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "El correo es requerido")]
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "La contraseña es requerida")]
     [MinLength(8)]
     public string Password { get; set; } = string.Empty;
 

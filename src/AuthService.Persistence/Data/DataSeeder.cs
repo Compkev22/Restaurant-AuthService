@@ -9,34 +9,21 @@ public static class DataSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        // 1. Sembrar los 4 roles del restaurante si la tabla está vacía
+        // 1. Sembrar Roles
         if (!context.Roles.Any())
         {
             var roles = new List<Role>
             {
-                new() { 
-                    Id = UuidGenerator.GenerateRoleId(), 
-                    Name = RoleConstants.PLATFORM_ADMIN_ROLE 
-                },
-                new() { 
-                    Id = UuidGenerator.GenerateRoleId(), 
-                    Name = RoleConstants.BRANCH_ADMIN_ROLE 
-                },
-                new() { 
-                    Id = UuidGenerator.GenerateRoleId(), 
-                    Name = RoleConstants.EMPLOYEE_ROLE 
-                },
-                new() { 
-                    Id = UuidGenerator.GenerateRoleId(), 
-                    Name = RoleConstants.CLIENT_ROLE 
-                }
+                new() { Id = UuidGenerator.GenerateRoleId(), Name = RoleConstants.PLATFORM_ADMIN_ROLE },
+                new() { Id = UuidGenerator.GenerateRoleId(), Name = RoleConstants.BRANCH_ADMIN_ROLE },
+                new() { Id = UuidGenerator.GenerateRoleId(), Name = RoleConstants.EMPLOYEE_ROLE },
+                new() { Id = UuidGenerator.GenerateRoleId(), Name = RoleConstants.CLIENT_ROLE }
             };
-
             await context.Roles.AddRangeAsync(roles);
             await context.SaveChangesAsync();
         }
 
-        // 2. Crear al "Platform Admin" maestro si no existen usuarios
+        // 2. Sembrar Admin Maestro
         if (!await context.Users.AnyAsync())
         {
             var platformAdminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == RoleConstants.PLATFORM_ADMIN_ROLE);
@@ -44,43 +31,19 @@ public static class DataSeeder
             if (platformAdminRole != null)
             {
                 var userId = UuidGenerator.GenerateUserId();
-                var profileId = UuidGenerator.GenerateUserId();
-                var emailId = UuidGenerator.GenerateUserId();
-                var userRoleId = UuidGenerator.GenerateUserId();
-
                 var adminUser = new User
                 {
                     Id = userId,
-                    Name = "Platform",
-                    Surname = "Admin",
+                    UserName = "Platform",      // Cambio: UserName
+                    UserSurname = "Admin",     // Cambio: UserSurname
                     Username = "sysadmin",
                     Email = "admin@restaurante.local",
-                    Password = "12345678", // Contraseña temporal
-                    Status = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    UserProfile = new UserProfile
-                    {
-                        Id = profileId,
-                        UserId = userId
-                    },
-                    UserEmail = new UserEmail
-                    {
-                        Id = emailId,
-                        UserId = userId,
-                        EmailVerified = true
-                    },
-                    UserRoles =
-                    [
-                        new UserRole
-                        {
-                            Id = userRoleId,
-                            UserId = userId,
-                            RoleId = platformAdminRole.Id,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        }
-                    ]
+                    Password = "12345678", 
+                    UserStatus = "ACTIVE",     // Cambio: UserStatus
+                    UserCreatedAt = DateTime.UtcNow,
+                    UserProfile = new UserProfile { Id = UuidGenerator.GenerateUserId(), UserId = userId },
+                    UserEmail = new UserEmail { Id = UuidGenerator.GenerateUserId(), UserId = userId, EmailVerified = true },
+                    UserRoles = [ new UserRole { Id = UuidGenerator.GenerateUserId(), UserId = userId, RoleId = platformAdminRole.Id } ]
                 };
 
                 await context.Users.AddAsync(adminUser);

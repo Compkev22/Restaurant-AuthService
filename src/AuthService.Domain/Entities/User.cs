@@ -1,48 +1,34 @@
-using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
 
 namespace AuthService.Domain.Entities;
 
 public class User
 {
-    [Key]
-    [MaxLength(16)]
+    // Propiedades básicas (Las que antes buscaba en BaseEntity)
     public string Id { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    [Required(ErrorMessage = "El nombre es obligatorio")]
-    [MaxLength(25)]
-    public string Name { get; set; } = string.Empty;
-
-    [Required(ErrorMessage = "El apellido es obligatorio")]
-    [MaxLength(25)]
-    public string Surname { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(50)]
+    // Propiedades de compatibilidad con Node.js (Mongoose)
+    public string UserName { get; set; } = string.Empty;
+    public string UserSurname { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
-
-    [Required]
-    [EmailAddress] // El valor de esta propiedad debe tener un formato de correo electronico
     public string Email { get; set; } = string.Empty;
-
-    [Required]
-    [MinLength(255)]
     public string Password { get; set; } = string.Empty;
     
-    public bool Status { get; set; } = true;
-
-    [Required]
-    public DateTime CreatedAt { get; set; }
-
-    [Required]
-    public DateTime UpdatedAt { get; set; }
-
-    // Relaciones de navegación solo dentro del código
-    // Esto no altera la base de datos
-    public UserProfile UserProfile { get; set; } = null!;
+    // Cambiamos de bool a string para usar 'ACTIVE' / 'INACTIVE'
+    public string UserStatus { get; set; } = "ACTIVE";
     
-    public ICollection<UserRole> UserRoles { get; set; } = [];
-    
-    public UserEmail UserEmail { get; set; } = null!;
-    
-    public UserPasswordReset UserPasswordReset { get; set; } = null!;
+    public string? BranchId { get; set; }
+
+    // Campos extra de auditoría
+    public DateTime UserCreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
+
+    // Relaciones (Navegación)
+    public virtual UserProfile? UserProfile { get; set; }
+    public virtual UserEmail? UserEmail { get; set; }
+    public virtual UserPasswordReset? UserPasswordReset { get; set; }
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

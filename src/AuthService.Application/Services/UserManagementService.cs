@@ -15,7 +15,7 @@ public class UserManagementService(IUserRepository users, IRoleRepository roles,
 
         // Validate inputs
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentException("Invalid userId", nameof(userId));
-        
+
         if (!RoleConstants.AllowedRoles.Contains(roleName))
             throw new InvalidOperationException($"Role not allowed. Use {RoleConstants.PLATFORM_ADMIN_ROLE}, {RoleConstants.BRANCH_ADMIN_ROLE}, {RoleConstants.EMPLOYEE_ROLE} or {RoleConstants.CLIENT_ROLE}");
 
@@ -48,16 +48,16 @@ public class UserManagementService(IUserRepository users, IRoleRepository roles,
         return new UserResponseDto
         {
             Id = user.Id,
-            Name = user.Name,
-            Surname = user.Surname,
+            UserName = user.UserName,
+            UserSurname = user.UserSurname,
             Username = user.Username,
             Email = user.Email,
             ProfilePicture = cloudinary.GetFullImageUrl(user.UserProfile?.ProfilePictureUrl ?? string.Empty),
             Phone = user.UserProfile?.Phone ?? string.Empty,
             Role = role.Name,
-            Status = user.Status,
+            UserStatus = user.UserStatus,
             IsEmailVerified = user.UserEmail?.EmailVerified ?? false,
-            CreatedAt = user.CreatedAt,
+            UserCreatedAt = user.UserCreatedAt,
             UpdatedAt = user.UpdatedAt
         };
     }
@@ -72,19 +72,20 @@ public class UserManagementService(IUserRepository users, IRoleRepository roles,
     {
         roleName = roleName?.Trim().ToUpperInvariant() ?? string.Empty;
         var usersInRole = await roles.GetUsersByRoleAsync(roleName);
+
         return usersInRole.Select(u => new UserResponseDto
         {
             Id = u.Id,
-            Name = u.Name,
-            Surname = u.Surname,
+            UserName = u.UserName,       // Antes decía u.Name
+            UserSurname = u.UserSurname,   // Antes decía u.Surname
             Username = u.Username,
             Email = u.Email,
             ProfilePicture = cloudinary.GetFullImageUrl(u.UserProfile?.ProfilePictureUrl ?? string.Empty),
             Phone = u.UserProfile?.Phone ?? string.Empty,
             Role = roleName,
-            Status = u.Status,
+            UserStatus = u.UserStatus,     // Antes decía u.Status
             IsEmailVerified = u.UserEmail?.EmailVerified ?? false,
-            CreatedAt = u.CreatedAt,
+            UserCreatedAt = u.UserCreatedAt, // Antes decía u.CreatedAt
             UpdatedAt = u.UpdatedAt
         }).ToList();
     }

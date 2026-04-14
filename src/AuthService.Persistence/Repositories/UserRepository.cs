@@ -8,19 +8,21 @@ namespace AuthService.Persistence.Repositories;
 
 public class UserRepository(ApplicationDbContext context): IUserRepository
 {
+    // 1. Obtiene usuario por ID con todas sus relaciones cargadas
     public async Task<User> GetByIdAsync(string id)
     {
         var user = await context.Users
-        .Include(u => u.UserProfile)
-        .Include(u => u.UserEmail)
-        .Include(u => u.UserPasswordReset)
-        .Include(u => u.UserRoles)
-        .FirstOrDefaultAsync(u => u.Id == id);
+            .Include(u => u.UserProfile)
+            .Include(u => u.UserEmail)
+            .Include(u => u.UserPasswordReset)
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
         return user ?? throw new InvalidOperationException($"User with id {id} not found");
     }
 
-    //2. Busca un usuario por su Email (sin importar mayúsculas/minúsculas)
+    // 2. Busca por Email usando ILike (ignora mayúsculas/minúsculas en Postgres)
     public async Task<User?> GetByEmailAsync(string email)
     {
         return await context.Users
@@ -30,10 +32,9 @@ public class UserRepository(ApplicationDbContext context): IUserRepository
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, email));
-
     }
 
-    //3. Busca a un usuario por su Username (sin importar mayúsculas/minúsculas)
+    // 3. Busca por Username (Login Name)
     public async Task<User?> GetByUsernameAsync(string username)
     {
         return await context.Users
@@ -43,36 +44,31 @@ public class UserRepository(ApplicationDbContext context): IUserRepository
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Username, username));
-
     }
 
-    //4. Busca un usuario mediante su token de verificación de correo
+    // 4. Busca por token de verificación
     public async Task<User?> GetByEmailVerificationTokenAsync(string token)
     {
         return await context.Users
             .Include(u => u.UserProfile)
             .Include(u => u.UserEmail)
-            .Include(u => u.UserPasswordReset)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.UserEmail != null &&
-                                u.UserEmail.EmailVerificationToken == token);
+            .FirstOrDefaultAsync(u => u.UserEmail != null && u.UserEmail.EmailVerificationToken == token);
     }
 
-    //5. Busca un usuario mediante su token de restablecimiento de contraseña
+    // 5. Busca por token de reset de password
     public async Task<User?> GetByPasswordResetTokenAsync(string token)
     {
         return await context.Users
             .Include(u => u.UserProfile)
-            .Include(u => u.UserEmail)
             .Include(u => u.UserPasswordReset)
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.UserPasswordReset != null &&
-                                u.UserPasswordReset.PasswordResetToken == token);
+            .FirstOrDefaultAsync(u => u.UserPasswordReset != null && u.UserPasswordReset.PasswordResetToken == token);
     }
 
-    //6. Crea un nuevo registro de usuario en la BD y lo retorna con sus relaciones
+    // 6. Crea el usuario
     public async Task<User> CreateAsync(User user)
     {
         context.Users.Add(user);
@@ -80,14 +76,15 @@ public class UserRepository(ApplicationDbContext context): IUserRepository
         return await GetByIdAsync(user.Id);
     }
 
-    //7. Actualiza un usuario existente en la BD y lo retorna con sus relaciones
+    // 7. Actualiza el usuario
     public async Task<User> UpdateAsync(User user)
     {
+        // Forzamos el seguimiento de la entidad para asegurar que se guarden UserName, UserStatus, etc.
+        context.Users.Update(user);
         await context.SaveChangesAsync();
         return await GetByIdAsync(user.Id);
     }
 
-    // 8.Elimina un usuaro de la base de datos por su ID
     public async Task<bool> DeleteAsync(string id)
     {
         var user = await GetByIdAsync(id);
@@ -96,21 +93,16 @@ public class UserRepository(ApplicationDbContext context): IUserRepository
         return true;
     }
 
-    //9.Verifica si un email ya esta registrado
     public async Task<bool> ExistsByEmailAsync(string email)
     {
-        return await context.Users
-            .AnyAsync(u => EF.Functions.ILike(u.Email, email));
+        return await context.Users.AnyAsync(u => EF.Functions.ILike(u.Email, email));
     }
 
-    //10. Verifica si un nombre de usuario ya esta en uso
     public async Task<bool> ExistsByUsernameAsync(string username)
     {
-        return await context.Users
-            .AnyAsync(u => EF.Functions.ILike(u.Username, username));
+        return await context.Users.AnyAsync(u => EF.Functions.ILike(u.Username, username));
     }
 
-    //11. Cambia el rol de un usuario: elimina roles previos y asigna uno nuevo
     public async Task UpdateUserRoleAsync(string userId, string roleId)
     {
         var existingRoles = await context.UserRoles
@@ -118,6 +110,7 @@ public class UserRepository(ApplicationDbContext context): IUserRepository
             .ToListAsync();
 
         context.UserRoles.RemoveRange(existingRoles);
+        
         var newUserRole = new UserRole
         {
             Id = UuidGenerator.GenerateUserId(),
