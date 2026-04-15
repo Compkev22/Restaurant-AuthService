@@ -74,10 +74,16 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Inicialización de DB
-using (var scope = app.Services.CreateScope()) {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    // Necesitamos traer el servicio de encriptación
+    var hashService = services.GetRequiredService<AuthService.Application.Interfaces.IPasswordHashService>();    
     await context.Database.MigrateAsync();
-    await DataSeeder.SeedAsync(context);
+    
+    // Le pasamos ambos parámetros al Seeder
+    await DataSeeder.SeedAsync(context, hashService); 
 }
 
 app.Run();
