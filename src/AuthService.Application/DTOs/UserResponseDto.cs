@@ -1,10 +1,15 @@
 namespace AuthService.Application.DTOs;
+using System.Text.Json.Serialization;
 
 public class UserResponseDto
 {
     public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("firstName")]
     public string UserName { get; set; } = string.Empty;
+    [JsonPropertyName("lastName")]
     public string UserSurname { get; set; } = string.Empty;
+    [JsonPropertyName("systemUsername")]
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;

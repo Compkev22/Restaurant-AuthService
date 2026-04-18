@@ -2,12 +2,14 @@ using AuthService.Domain.Entities;
 using AuthService.Application.Services;
 using AuthService.Domain.Constants;
 using Microsoft.EntityFrameworkCore;
+using AuthService.Application.Interfaces; // <-- SUPER IMPORTANTE
 
 namespace AuthService.Persistence.Data;
 
 public static class DataSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext context)
+    // AHORA RECIBIMOS LOS 2 ARGUMENTOS AQUÍ
+    public static async Task SeedAsync(ApplicationDbContext context, IPasswordHashService passwordHashService)
     {
         // 1. Sembrar Roles
         if (!context.Roles.Any())
@@ -34,12 +36,13 @@ public static class DataSeeder
                 var adminUser = new User
                 {
                     Id = userId,
-                    UserName = "Platform",      // Cambio: UserName
-                    UserSurname = "Admin",     // Cambio: UserSurname
+                    UserName = "Platform",
+                    UserSurname = "Admin",
                     Username = "sysadmin",
                     Email = "admin@restaurante.local",
-                    Password = "12345678", 
-                    UserStatus = "ACTIVE",     // Cambio: UserStatus
+                    // USAMOS EL SERVICIO DE HASH PARA LA CONTRASEÑA
+                    Password = passwordHashService.HashPassword("12345678"), 
+                    UserStatus = "ACTIVE",
                     UserCreatedAt = DateTime.UtcNow,
                     UserProfile = new UserProfile { Id = UuidGenerator.GenerateUserId(), UserId = userId },
                     UserEmail = new UserEmail { Id = UuidGenerator.GenerateUserId(), UserId = userId, EmailVerified = true },
