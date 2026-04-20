@@ -20,7 +20,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// <response code="200">Login exitoso. Devuelve el Token y datos del usuario.</response>
     /// <response code="401">Credenciales inválidas.</response>
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromForm] LoginDto loginDto)
     {
         var result = await authService.LoginAsync(loginDto);
         return Ok(result);
@@ -66,18 +66,18 @@ public class AuthController(IAuthService authService) : ControllerBase
     /// </summary>
     /// <param name="verifyEmailDto">Token recibido por correo.</param>
     [HttpPost("verify-email")]
-    public async Task<ActionResult> VerifyEmail([FromBody] VerifyEmailDto verifyEmailDto)
+    public async Task<ActionResult> VerifyEmail([FromForm] VerifyEmailDto verifyEmailDto)
     {
         var result = await authService.VerifyEmailAsync(verifyEmailDto);
         return Ok(result);
     }
 
-    /// <summary>
+    /// <summary>   
     /// Solicita un enlace para restablecer la contraseña.
     /// </summary>
     /// <param name="forgotPasswordDto">Correo del usuario que olvidó su clave.</param>
     [HttpPost("forgot-password")]
-    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+    public async Task<ActionResult> ForgotPassword([FromForm] ForgotPasswordDto forgotPasswordDto)
     {
         var result = await authService.ForgotPasswordAsync(forgotPasswordDto);
         return Ok(result);
