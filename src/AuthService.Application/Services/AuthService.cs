@@ -212,16 +212,17 @@ public class AuthService(
     {
         var user = await userRepository.GetByPasswordResetTokenAsync(resetPasswordDto.Token);
 
-        // Agregamos el ? después de UserPasswordReset para que sea seguro
         if (user == null || user.UserPasswordReset?.PasswordResetTokenExpiration < DateTime.UtcNow)
             return new EmailResponseDto { Success = false, Message = "Token inválido o expirado" };
 
         user.Password = passwordHashService.HashPassword(resetPasswordDto.NewPassword);
 
-        // Aquí también usamos el ? por seguridad
         if (user.UserPasswordReset != null)
         {
-            user.UserPasswordReset.PasswordResetToken = null;
+            // En lugar de null (que rompe la DB), invalidamos el token con un texto random 
+            // y ponemos su expiración en el pasado para que sea inutilizable.
+            user.UserPasswordReset.PasswordResetToken = "CONSUMED_" + Guid.NewGuid().ToString();
+            user.UserPasswordReset.PasswordResetTokenExpiration = DateTime.UtcNow.AddDays(-1);
         }
 
         await userRepository.UpdateAsync(user);
