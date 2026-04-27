@@ -82,4 +82,61 @@ public class AuthController(IAuthService authService) : ControllerBase
         var result = await authService.ForgotPasswordAsync(forgotPasswordDto);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Obtiene el perfil de un usuario mediante su ID.
+    /// </summary>
+    /// <remarks>
+    /// Útil para que los administradores busquen información de empleados o clientes específicos.
+    /// </remarks>
+    /// <param name="request">ID del usuario a buscar.</param>
+    /// <response code="200">Retorna la información del perfil del usuario.</response>
+    /// <response code="404">Usuario no encontrado.</response>
+    [HttpPost("profile/by-id")]
+    public async Task<ActionResult<object>> GetProfileById([FromForm] GetProfileByIdDto request)
+    {
+        if (string.IsNullOrEmpty(request.UserId))
+        {
+            return BadRequest(new { success = false, message = "El userId es requerido" });
+        }
+
+        var user = await authService.GetUserByIdAsync(request.UserId);
+        
+        if (user == null)
+        {
+            return NotFound(new { success = false, message = "Usuario no encontrado" });
+        }
+
+        return Ok(new { success = true, data = user });
+    }
+
+    /// <summary>
+    /// Reenvía el correo de verificación.
+    /// </summary>
+    /// <remarks>
+    /// Útil si el usuario no recibió el correo original o si el token expiró.
+    /// </remarks>
+    /// <param name="resendDto">Correo del usuario que necesita el reenvío.</param>
+    /// <response code="200">Correo reenviado exitosamente.</response>
+    [HttpPost("resend-verification")]
+    public async Task<ActionResult> ResendVerification([FromForm] ResendVerificationDto resendDto)
+    {
+        var result = await authService.ResendVerificationEmailAsync(resendDto);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Restablece la contraseña de un usuario.
+    /// </summary>
+    /// <remarks>
+    /// Requiere el token enviado por correo en el paso de "forgot-password" y la nueva contraseña.
+    /// </remarks>
+    /// <param name="resetPasswordDto">Token de recuperación y nueva contraseña.</param>
+    /// <response code="200">Contraseña actualizada correctamente.</response>
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromForm] ResetPasswordDto resetPasswordDto)
+    {
+        var result = await authService.ResetPasswordAsync(resetPasswordDto);
+        return Ok(result);
+    }
 }
