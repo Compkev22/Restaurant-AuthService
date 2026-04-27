@@ -2,88 +2,243 @@ using AuthService.Api.Extensions;
 using AuthService.Api.Middlewares;
 using AuthService.Api.ModelBinders;
 using AuthService.Persistence.Data;
+using NetEscapades.AspNetCore.SecurityHeaders.Infrastructure;
 using Serilog;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
-
+ 
 var builder = WebApplication.CreateBuilder(args);
-
-// Configuración de Serilog
+ 
+ 
+// CONFIGURACIÓN
+// FIX: Bypass SSL (Cloudinary, etc.)
+System.Net.ServicePointManager.ServerCertificateValidationCallback += (sender, certificate, chain, sslPolicyErrors) => true;
+ 
+ 
+// Configura Serilog como el motor de registro (logging) principal de tu aplicación
+// reemplazando al sistema por defecto de .NET.
 builder.Host.UseSerilog((context, services, loggerConfiguration) =>
-    loggerConfiguration.ReadFrom.Configuration(context.Configuration).ReadFrom.Services(services));
-
-builder.Services.AddControllers(options => {
+    loggerConfiguration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services));
+ 
+ 
+// Integra la configuración de FileDataModelBinderProvider.cs
+builder.Services.AddControllers(options =>
+{
+    // Agregar el model binder para IFileData
     options.ModelBinderProviders.Insert(0, new FileDataModelBinderProvider());
 })
-.AddJsonOptions(o => {
+.AddJsonOptions(o =>
+{
+    // Estandarizar las respuestas en camelCase para coincidir con auth-node
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
 });
-
-// Configuración de Swagger con Soporte para Comentarios XML y JWT
+ 
+ 
+// CONFIGURACIÓN DE SERVICIOS POR MEDIO DE MÉTODOS DE EXTENSIÓN
+builder.Services.AddApiDocumentation();
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddRateLimitingPolicies();
+ 
+ 
+// INTEGRAR SERVICIOS DE SEGURIDAD
+builder.Services.AddSecurityPolicies(builder.Configuration);
+builder.Services.AddSecurityOptions();
+ 
+ 
+// .....................................................
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options => {
-    options.SwaggerDoc("v1", new OpenApiInfo { 
-        Title = "Kinal Fried Chicken - Auth API", 
-        Version = "v1",
-        Description = "Servicio de Autenticación para el sistema del restaurante."
-    });
-
-    // Configurar el candado de seguridad en Swagger
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme {
-        Description = "JWT Authorization header usando el esquema Bearer. Ejemplo: 'Bearer 12345abcdef'",
+/*builder.Services.AddSwaggerGen(c =>
+{
+    // Nombre y versión de tu API en Swagger
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "AuthService API", Version = "v1" });
+ 
+    // 1. Definir el esquema de seguridad (El candado)
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Autenticación JWT. Ingresa la palabra 'Bearer' seguida de un espacio y tu token.\n\nEjemplo: 'Bearer eyJhbGci...'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement {
+ 
+    // 2. Aplicar el requisito de seguridad globalmente
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            new OpenApiSecurityScheme {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
             },
             Array.Empty<string>()
         }
     });
-
-    // Cargar los comentarios XML
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    options.IncludeXmlComments(xmlPath);
 });
+*/
+/*builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+       Title = "Auth API",
+       Version = "v1",
+       Description = "API de autenticación"
+    });
 
-builder.Services.AddApplicationServices(builder.Configuration);
-builder.Services.AddJwtAuthentication(builder.Configuration);
-builder.Services.AddRateLimitingPolicies();
-builder.Services.AddSecurityPolicies(builder.Configuration);
-
+    
+}); 
+*/
+builder.Services.AddSwaggerGen(options =>
+    {
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+ 
+        options.IncludeXmlComments(xmlPath);
+    });
+// .....................................................
+ 
+ 
+ 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment()) {
+ 
+// CONFIGURACIÓN DE HTTP request pipeline
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KinalAuth v1"));
+    app.UseSwaggerUI();
 }
-
+ 
+// Add Serilog request logging
 app.UseSerilogRequestLogging();
+ 
+// Add Security Headers using NetEscapades package
+app.UseSecurityHeaders(policies => policies
+    .AddDefaultSecurityHeaders()
+    .RemoveServerHeader()
+    .AddFrameOptionsDeny()
+    .AddXssProtectionBlock()
+    .AddContentTypeOptionsNoSniff()
+    .AddReferrerPolicyStrictOriginWhenCrossOrigin()
+    .AddContentSecurityPolicy(builder =>
+    {
+        builder.AddDefaultSrc().Self();
+        builder.AddScriptSrc().Self().UnsafeInline();
+        builder.AddStyleSrc().Self().UnsafeInline();
+        builder.AddImgSrc().Self().Data();
+        builder.AddFontSrc().Self().Data();
+        builder.AddConnectSrc().Self().From("http://localhost:5173");
+        builder.AddFrameAncestors().None();
+        builder.AddBaseUri().Self();
+        builder.AddFormAction().Self();
+    })
+    .AddCustomHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    .AddCustomHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+);
+ 
+// Global exception handling
 app.UseMiddleware<GlobalExceptionMiddleware>();
+ 
+ 
+ 
+// Core middlewares
 app.UseHttpsRedirection();
 app.UseCors("DefaultCorsPolicy");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+ 
 app.MapControllers();
-
-// Inicialización de DB
+ 
+ 
+// Health check endpoints - both versions for compatibility
+// Standard health check endpoint
+app.MapHealthChecks("/health");
+ 
+ 
+// Custom health endpoint to match Node.js response format
+app.MapGet("/health", () =>
+{
+    var response = new
+    {
+        status = "Healthy",
+        timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+    };
+    return Results.Ok(response);
+});
+ 
+app.MapHealthChecks("/api/v1/health");
+ 
+ 
+ 
+// Startup log: addresses and health endpoint
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    try
+    {
+        var server = app.Services.GetRequiredService<IServer>();
+        var addressesFeature = server.Features.Get<IServerAddressesFeature>();
+        var addresses = (IEnumerable<string>?)addressesFeature?.Addresses ?? app.Urls;
+ 
+        if (addresses != null && addresses.Any())
+        {
+            foreach (var addr in addresses)
+            {
+                var health = $"{addr.TrimEnd('/')}/health";
+                startupLogger.LogInformation("AuthService API is running at {Url}. Health endpoint: {HealthUrl}", addr, health);
+            }
+        }
+        else
+        {
+            startupLogger.LogInformation("AuthService API started. Health endpoint: /health");
+        }
+    }
+    catch (Exception ex)
+    {
+        startupLogger.LogWarning(ex, "Failed to determine the listening addresses for startup log");
+    }
+});
+ 
+ 
+// Initialize database and seed data
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
-    // Necesitamos traer el servicio de encriptación
-    var hashService = services.GetRequiredService<AuthService.Application.Interfaces.IPasswordHashService>();    
-    await context.Database.MigrateAsync();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     
-    // Le pasamos ambos parámetros al Seeder
-    await DataSeeder.SeedAsync(context, hashService); 
+    // NUEVO: Extraemos el servicio de Hash de la inyección de dependencias
+    var passwordHashService = scope.ServiceProvider.GetRequiredService<AuthService.Application.Interfaces.IPasswordHashService>();
+
+    try
+    {
+        logger.LogInformation("Checking database connection...");
+
+        await context.Database.MigrateAsync();
+
+        logger.LogInformation("Database ready. Running seed data...");
+        
+        // CORREGIDO: Ahora le pasamos los DOS argumentos que necesita
+        await DataSeeder.SeedAsync(context, passwordHashService);
+
+        logger.LogInformation("Database initialization completed successfully");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while initializing the database");
+        throw; // Re-throw to stop the application
+    }
 }
 
 app.Run();
