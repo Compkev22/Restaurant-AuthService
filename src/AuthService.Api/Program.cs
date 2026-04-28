@@ -55,22 +55,32 @@ builder.Services.AddSecurityOptions();
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-/*builder.Services.AddSwaggerGen(c =>
+
+builder.Services.AddSwaggerGen(c =>
 {
-    // Nombre y versión de tu API en Swagger
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "AuthService API", Version = "v1" });
- 
-    // 1. Definir el esquema de seguridad (El candado)
+    // 1. Título y Versión (AQUÍ ESTÁ KINAL FRIED CHICKEN)
+    c.SwaggerDoc("v1", new OpenApiInfo 
+    { 
+        Title = "Auth API - KINAL FRIED CHICKEN", 
+        Version = "v1",
+        Description = "API de Autenticación para el sistema de restaurante"
+    });
+
+    // 2. Configuración para leer los comentarios XML de tus controladores
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+
+    // 3. El candadito para probar tokens JWT en Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Autenticación JWT. Ingresa la palabra 'Bearer' seguida de un espacio y tu token.\n\nEjemplo: 'Bearer eyJhbGci...'",
+        Description = "Autenticación JWT. Escribe 'Bearer' [espacio] y luego tu token.\n\nEjemplo: 'Bearer eyJhbGci...'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
- 
-    // 2. Aplicar el requisito de seguridad globalmente
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -86,19 +96,8 @@ builder.Services.AddEndpointsApiExplorer();
         }
     });
 });
-*/
-/*builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-       Title = "Auth API",
-       Version = "v1",
-       Description = "API de autenticación"
-    });
 
-    
-}); 
-*/
+
 builder.Services.AddSwaggerGen(options =>
     {
         var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
