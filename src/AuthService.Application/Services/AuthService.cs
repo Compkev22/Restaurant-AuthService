@@ -152,9 +152,17 @@ public class AuthService(
         return new UserDetailsDto
         {
             Id = user.Id,
+            UserName = user.UserName,
+            UserSurname = user.UserSurname,
             Username = user.Username,
+            UserEmail = user.Email,
+            Role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? RoleConstants.CLIENT_ROLE,
+            UserStatus = user.UserStatus,
+            IsEmailVerified = user.UserEmail?.EmailVerified ?? false,
+            UserCreatedAt = user.UserCreatedAt,
             ProfilePicture = _cloudinaryService.GetFullImageUrl(user.UserProfile?.ProfilePictureUrl ?? string.Empty),
-            Role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? RoleConstants.CLIENT_ROLE
+            Phone = user.UserProfile?.Phone,
+            BranchId = user.BranchId
         };
     }
 
