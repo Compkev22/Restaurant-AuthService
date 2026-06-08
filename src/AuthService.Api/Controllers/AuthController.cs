@@ -1,6 +1,7 @@
 using AuthService.Application.DTOs;
 using AuthService.Application.DTOs.Email;
 using AuthService.Application.Interfaces;
+using AuthService.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,6 +24,28 @@ public class AuthController(IAuthService authService) : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> Login([FromForm] LoginDto loginDto)
     {
         var result = await authService.LoginAsync(loginDto);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Inicia sesión exclusivo para clientes (rol CLIENT).
+    /// Devuelve 403 si el usuario tiene otro rol.
+    /// </summary>
+    [HttpPost("login-client")]
+    public async Task<ActionResult<AuthResponseDto>> LoginClient([FromForm] LoginDto loginDto)
+    {
+        var result = await authService.LoginAsync(loginDto);
+
+        // Guardia de rol: solo CLIENTs pueden usar la app del cliente
+        if (result.UserDetails.Role != RoleConstants.CLIENT_ROLE)
+        {
+            return StatusCode(403, new
+            {
+                success = false,
+                message = "Acceso denegado. Esta aplicación es exclusiva para clientes."
+            });
+        }
+
         return Ok(result);
     }
 
