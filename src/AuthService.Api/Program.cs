@@ -29,15 +29,12 @@ builder.Host.UseSerilog((context, services, loggerConfiguration) =>
 // Integra la configuración de FileDataModelBinderProvider.cs
 builder.Services.AddControllers(options =>
 {
-    // Agregar el model binder para IFileData
     options.ModelBinderProviders.Insert(0, new FileDataModelBinderProvider());
 })
-.AddJsonOptions(o =>
+.AddJsonOptions(options =>
 {
-    // Estandarizar las respuestas en camelCase para coincidir con auth-node
-    o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.PropertyNamingPolicy = null;
 });
- 
  
 // CONFIGURACIÓN DE SERVICIOS POR MEDIO DE MÉTODOS DE EXTENSIÓN
 builder.Services.AddApiDocumentation();
