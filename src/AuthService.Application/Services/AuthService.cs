@@ -110,11 +110,11 @@ public class AuthService(
             : await userRepository.GetByUsernameAsync(loginDto.EmailOrUsername);
 
         if (user == null || !passwordHashService.VerifyPassword(loginDto.Password, user.Password))
-            throw new UnauthorizedAccessException("Invalid credentials");
+            throw new BusinessException(ErrorCodes.INVALID_CREDENTIALS, "Correo o contraseña incorrectos.");
 
-        if (user.UserStatus != "ACTIVE")
+        if (user.UserEmail?.EmailVerified == false)
             throw new UnauthorizedAccessException("User account is not active. Please verify your email.");
-
+            
         var token = jwtTokenService.GenerateToken(user);
         var expiryMinutes = int.Parse(configuration["JwtSettings:ExpiryInMinutes"] ?? "30");
 
@@ -154,7 +154,7 @@ public class AuthService(
             Id = user.Id,
             UserName = user.UserName,
             UserSurname = user.UserSurname,
-            Username = user.Username,
+            SystemUsername = user.Username,   // ← propiedad renombrada en el DTO
             UserEmail = user.Email,
             Role = user.UserRoles.FirstOrDefault()?.Role?.Name ?? RoleConstants.CLIENT_ROLE,
             UserStatus = user.UserStatus,
