@@ -110,11 +110,8 @@ var app = builder.Build();
 
  
 // CONFIGURACIÓN DE HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
  
 // Add Serilog request logging
 app.UseSerilogRequestLogging();
@@ -134,8 +131,12 @@ app.UseSecurityHeaders(policies => policies
         builder.AddStyleSrc().Self().UnsafeInline();
         builder.AddImgSrc().Self().Data();
         builder.AddFontSrc().Self().Data();
-        builder.AddConnectSrc().Self().From("http://localhost:5173");
-        builder.AddFrameAncestors().None();
+        builder.AddConnectSrc().Self()
+            .From("http://localhost:5173")
+            .From("http://localhost:5174")
+            .From("http://localhost:8081")
+            .From("https://kinal-fried-chicken.web.app")
+            .From("https://kinal-fried-chicken.firebaseapp.com");      
         builder.AddBaseUri().Self();
         builder.AddFormAction().Self();
     })

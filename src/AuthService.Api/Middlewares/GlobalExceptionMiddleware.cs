@@ -20,7 +20,10 @@ public class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExcep
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unhandled exception occurred");
+            if (ex is BusinessException)
+                logger.LogWarning(ex, "Business rule violation: {Message}", ex.Message);
+            else
+                logger.LogError(ex, "An unhandled exception occurred");
             await HandleExceptionAsync(context, ex);
         }
     }
